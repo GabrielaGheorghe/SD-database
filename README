@@ -1,0 +1,101 @@
+========GHEORGHE Luminita-Gabriela - 312 CB========
+PUNCTAJ LA RULAREA TESTELOR 85/85 
+PUNCTAJ VALGRIND 0/20
+
+	Implementarea bazei de date este continuta in patru fisiere:
+
+- tema1.c in care este citita comanda de la tastatura si implementat meniul care va procesa comanda introdusa
+- Data_Definition.c in care sunt implementate functiile de initializare a bazei de date, stergerea bazei de date si crearea unui tabel
+- Data_Query in care sunt implementate functiile de afisare a unui tabel, afisare a bazei de date si cautare a liniilor unui tabel dupa un anumit criteriu
+- Data_Manipulation in care sunt implementate functiile de adaugare a unei linii intr-un anumit tabel, stergerea unor linii ale tabelului dupa un anumit criteriu si cea de eliminare a tuturor liniilor unui tabel continut in baza de date
+
+DATA DEFINITION
+
+1. INIT_DB - functia de initializare a bazei de date
+	
+	In functie este initializata o variabila de tipul t_db, definit in fisierul "structures.h" ce reprezinta formatul unei baze de date. Am alocat dinamic memoria bazei de date pentru un elemnt de tip t_db. Functia va intoarce vectorul NULL in cazul esecului la alocare
+	In campul nume din cadrul structurii t_db am copiat numele dat ca parametru functiei, iar vectorul "tables"ce va indica catre tabelele bazei de date l-am setat initial pe NULL, baza de date necontinand niciun tabel deocamdata.
+
+2. CREATE - functia de creare a unui tabel
+
+	O functie auxiliara pentru implementarea unui tabel este functia "AllocateColumn" care primeste ca parametru un sir de caractere cu dimensiunea MAX_COLUMN_NAME_LEN, dimensiune predefinita in "structures.h" pentru dimensiunea numeloui unei coloane a tabelului. Functia va intoarce un element de tip t_column ce reprezinta o celula de lista corespunzatoare listei de coloane. Am initializat o variabila de tip t_column pe care am alocat dinamic memoria ocupata cu dimensiunea unui element de tip t_column. In campul nume al celulei de lista am copiat numele dat ca paramtru functiei, iar vectorul ce realizeaza legatura cu urmatoarea celula l-am setat pe NULL.
+
+	Functia CREATE primeste ca parametru baza de date, un sir de caractere de lungime MAX_TABLE_NAME_LEN (predefinit in fisierul "structures.h")  ce va reprezenta numele tabelului care urmeaza a fi creeat, un vector de tipul char ce va indica tipul de date pe care il va contine tabelul si un vector de tipul char ce va stoca numele coloanelor pe care le va contine tabelul.
+	Am initializat o variabila de tip t_table careia i-am alocat dinamic memoria cu dimensiunea unui element de tip t_table, ce reprezinta tabelul pe care il vom creea. Cu functia strcpy, am copiat numele tabelului dat ca parametru in campul name al structurii corespunzatoare unui tabel. Vectorii ce pointeaza catre lista de coloane, lista de linii si tabelul urmator din lista de tabele sunt setati, deocamdata, pe NULL. 
+	Cu functia strcmp am comparat, pe rand, tipul de date dat ca parametru cu tipurile INT, FLOAT SI STRING predefinite in "structures.h", si in functie de caz, am atribuit campului type din structura unui tabel acel tip de date.
+	Campurile structurii unui tabel fiind astfel setate, urmeaza legarea tabelului de restul structurii.
+	Se verifica daca campul (*database)->tables este NULL. In caz afirmativ, vectorul tables din structura unei baze de date va pointa catre tabelul nou creat. Altfel, se initializeaza variabila "last_table" de tipul t_table* care va pointa, dupa parcurgerea tututror tabelelor din baza de date, catre ultimul tabel. Apoi de ultimul tabel astfel gasit se leaga tabelul nou. Cu functia strtok aplicata pe sirul numelor de coloane dat ca parametru, se afla, pe rand, numele coloanelor si se initializea o celula de lista cu acest nume(cu functia AllocateColumn). Daca nu exista inca o coloana inserata in tabel, celula se leaga de vectorul(table->columns), iar daca in tabel s-au mai inserat coloane inainte se initializeaza variabila last_column de tipul t_column* care, dupa parcurgerea coloanelor, va puncta catre ultima celula din lista de coloane, iar de ea se leaga celula creata anterior.
+
+3. DELETE - funcia de stergere a unui tabel din baza de date
+
+	Functia este reprezentata de alte trei functii, in functie de tipul de date continut de tabel, si anume: DELETE_INT_TABLE, DELETE_FLOAT_TABLE, DELETE_STRING_TABLE. Modul de implementare al celor trei functii este asemanator, diferenta fiind tipul de date continut de tabel. Se explica in cele ce urmeaza implementarea unei astfel de functii, celelalte doua fiind implementate similar.
+	Functia DELETE_INT_TABLE primeste ca parametri baza de date si tabelul ce urmeaza a fi sters din baza de date, si este de tipul void. Se declara trei variabile de tipul t_table*, si anume: t, un contor utilizat pentru parcurgerea tabelelor bazei de date, *ant, ce va retine tabelul anterior celui care se doreste a fi sters, si aux_table care va pointa spre tabelul cautat.
+	Initial, pointerul ant este setat pe NULL. Se parcurge baza de date cu ajutorul contorului t pana cand numele tabelului dat ca parametru este acelasi cu numele tabelului(strcmp(t->name, table->name) = 0). Se verifica daca tabelul gasit este primul in lista de tabele a bazei de date(ant == NULL). In caz afirmativ, pointerul ce leaga baza de date de lista de tabele va pointa catre urmatorul tabel de dupa cel ce trebuie eliminat((*database)->tables = t->next). Altfel, ant->next va pointa catre tabelul urmator celui gasit(ant->next = t->next). Prin cele doua cazuri se refac legaturile in lista de tabele a bazei de date.
+	Variabila aux_table va pointa catre tabelul ce va fi sters si se realizeaza avansul t = t->next; Se apeleaza functia DEZALOC_INT, care dezaloca memoria unui tabel al bazei de date ce contine date de tipul int. Altfel, daca numele dat ca parametru nu este cel al tabelului indicat de contor, se trece la urmatorul tabel al bazei de date prin avansul: ant = t; t = t->next.
+	Functia DEZALOC_INT primeste ca parametru tabelul a carui memorie va fi dezalocata(aux_table) si este de tipul void. Daca tabelul contine linii(table->line != NULL), se initializeaza variabilele de tip t_intLine *s, *saux si t_intCell *c, *aux. Variabila s va puncta catre inceputul primei linii, in timp ce variabila c va puncta catre prima valoarea de pe prima linie a tabelului. Cat timp s si c sunt diferite de vectorul NULL, cu ajutorul variabilelor auxiliare saux si aux, se elibereaza memori fiecarei celule din lista cu valorile unei linii, se face avansul catre cealalta linie si se elibereaza memoria, pe rand, si pentru fiecare celula din lista ce face posibila trecerea printre celule. In final, vectorul de linii al tabelului va fi setat pe NULL si se elibereaza si lista ce contine numele coloanelor dupa acelasi princiupiu cu care a fost eliberata memoria pentru fiecare linie in parte si se elibereaza memoria pentru intreaga structura a tabelului (free(table)).
+
+
+DATA QUERY
+
+1. PRINT - functia de afisare al unul tabel
+
+	Functia PRINT primeste ca parametru tabelul care trebuie afisat si este de tipul void. Se afiseaza numele tabelului cu printf, apoi este setat un vector "column" de tipul t_column* care va pointa catre inceputul listei de coloane. Cat timp acest vector nu este NULL, se incrementeaza un contor(nr) care va avea valoarea numarului de coloane si se afiseaza pe rand numele coloanelor cu o anumita spatiere intre ele. Aceasta spatiere se afiseaza cu ajutorul unui ciclu for care porneste de la zero, pana la (MAX_COLUMN_NAME_LEN - strlen(column->name) + 1), si avanseaza cu o unitate, si pentru fiecare unitate se va afisa un spatiu.
+	Se trece la o noua linie si, sub fiecare coloana va fi afisat un rand delimitator a carui forma este : - - - - - . Acest rand este afisat intr-un ciclu for care porneste de la zero, pana la MAX_COLUMN_NAME_LEN si este incrementat cu 1. Randul va fi afisat de numarul de ori egal cu numarul coloanelor numarat anterior(nr).
+	Printarea liniilor tabelului se face cu ajutorul a trei functii, fiecare specifica pentru un anumit tip de date. Se verifica astfel tipul de date al tabelului dat ca parametru si se intra pe cazul corespunzator.
+	PRINT_INT- functia de printare a liniilor tabelului cu informatii de tipul int. Primeste ca parametru tabelul, parcurgand pe rand fiecare linie a acestuia. Pentru fiecare linie se seteaza vectorul t_intCell *cell, care va pointa catre prima valoare de pe linie. Cat timp aceasta celula cell este diferita de NULL, se printeaza informatia din interiorul ei(cell->value), dupa care se lasa o spatiere corespunzatoare egala cu MAX_COLUMN_NAME_LEN - numarul de cifre al valorii din interiorul celului + 1. Numarul de cifre al fiecarui numar din fiecare celula se calculeaza cu functia Number ce primeste ca parametru valoarea intreaga si calculeaza numarul de cifre al numarului.
+	Functiile PRINT_STRING si PRINT_FLOAT pentru afisarea liniilor unui tabel cu date de tipul string, respectiv float sunt asemanatoare.
+
+2. PRINT_DB - functia de afisare a unei baze de date
+
+	Functia PRINT_DB primeste ca parametru baza de date si este de tipul void. Se afiseaza un antet corespunzator ce contine si numele bazei de date(database->name), urmand sa se parcurga pe rand tabelele si sa se apeleze functia de PRINT <TABLE>.
+
+3. SEARCH - functie ce afiseaza un liniile unui tabel ce respecta o anumita conditie
+
+	Este compusa din 3 functii care se aseamana, cate una pentru fiecare tip de date.
+	Functia SEARCH_INT va cauta intr-un tabel cu date de tipul int.	
+	Functia SEARCH_FLOAT va cauta intr-un tabel cu date de tipul float.
+	Functia SEARCH_STRING va cauta intr-un tabel cu date de tipul string.
+	Functia SEARCH_INT primeste ca parametrii tabelul in care urmeaza sa se efectueze cautarea, numele coloanei dupa care se realizeaza cautarea, valoarea cu care se compara informatiile din coloana respectiva si relatia de comparatie.
+	Se parcurg, pe rand, liniile tabelului si pentru fiecare dintre aceasta se initializeaza un pointer de tipul t_intCell care va pointa sub coloana data ca parametru. Se verifica apoi ce tip de relatie de comapratie este data ca parametru, si, in functie de aceasta, se intra pe unul dintre cele 6 cazuri posibile. Se compara apoi valoarea spre care puncteaza p cu cea data ca paramtru si, in caz afirmativ, se apeleaza urmatoarele functii: PRINT_INTRO SI PRINT_INT_LINE.
+	Functia PRINT_INTRO nu este altceva decat inceputul afisat la functia de printarea a unui tabel, in timp ce functia PRINT_INT_LINE contine codul de printare al liniilor unui tabel prezent de altfel tot in functia mentionata anterior.
+	Astfel, daca valoarea respecta conditia, se va afisa tabelul continand si liniile respective. Daca nicio linie nu indeplineste conditia, se va afisa doar antetul tabelului.
+	Functiile de printare ale tabelelor ce contin informatii de tipul string si float sunt asemanatoare cu cea pentru valori de tipul int.
+
+DATA MANIPULATION
+
+1. ADD - functie ce adauga o linie in tabel
+
+	Functia ADD este compusa din trei functii, in functie de tipul de date pe care dorim sa il inseram: ADD_LINE_STRING, ADD_LINE_INT SI ADD_LINE_FLOAT, cele trei functii fiind asemanatoare.
+	Functia ADD_LINE_INT primeste ca parametrii tabelul in care vrem sa fie inserata linia si un sire de caractere continand valorile de pe linia respectiva.
+	Se aloca o celula de lista de tipul t_intLine* cu ajutorul functiei AllocateIntLine, ce reprezinta inceputul unei linii si o celula de tipul t_intCell *c cu ajutorul functiei InsertValueInt ce va contine valorile de pe o linie. Se verifica daca in tabel mai exista alte linii. In cazul in care nu exista, vectorul table->lines este setat catre line, in timp ce line->cells va puncta catre c. Altfel, se realizeaza un ciclu for in care este retinuta prima celula a ultimei linii care, prim campul next, va pointa catre line, iar line->cells va puncta catre c. 
+	InsertValueInt primeste ca parametru valorile ce urmeaza a fi adaugate pe linii, sub forma unui sir de caractere. Se despart astfel cuvintele cu strtok si se convertesc la tipui int cu atoi(pentru float se va converti cu atof). Se aloca o celula de lista cu functia AllocateIntCell care va fi legata fie de capatul listei(daca este prima valoare de pe linie), fie la finalul acesteia.
+	Functiile ADD_LINE_STRING si ADD_LINE_FLOAT se bazeaza pe acelasi principiu si apeleaza functii echivalente cu cele de la tipul int.
+
+2. DELETE - functie ce va sterge liniile unui tabel in functie de o relatie de comparatie
+
+	Functia DELETE este implementata cu ajutorul a trei functii asemanatoare: DELETE_INT, DELETE_STRING si DELETE_FLOAT, in functie de tipul de date continut de tabel.
+	Functia DELETE_INT primeste ca parametru tabelul, numele coloanei dupa care se va realiza comparatia, valoarea cu care se vor compara informatiile din tabel, si relatia de comapratie. Se parcurg coloanele tabelului si, daca se gaseste coloana cautata, se vor parcurge liniile din tabel si se va initializa un pointer de tipul t_intLine ce va puncta, pe rand, pe fiecare valoare de pe fiecare linie aflata sub coloana gasita anterior. In functie de relatia primita ca parametru, se intra pe unul dintre cele 6 cazuri, si, daca valoarea de pe o linie respecta comparatia, se apeleaza functia DELETE_INT_LINE care va elimina linia respectiva din tabel.
+	Functia DELETE_INT_LINE primeste ca parametrii linia pe care a fost gasita valoarea care indeplinea conditit si tabelul. Se verifica pozitia liniei in tabel, pentru a se reface corespunzator legaturile din lista de linii, apoi se elibereaza valorile de pe linia respectiva.
+	Functiile de stergere a liniilor unui tabel dupa o anumita conditie pentru valori de tip string sau float sunt asemanatoare cu cea pentru tipul int.
+
+3. CLEAR - functie ce sterge toate liniile unui tabel
+
+	Utilizeaza de asemenea trei functii pentru fiecare tip de date stocate intr-un tabel: CLEAR_INT_LINE, CLEAR_STRING_LINE si CLEAR_FLOAT_LINE. Cele trei functii dezaloca memeorie pentru toate liniile unui tabel si primesc ca parametru tabelul. Se parcurg liniile unui tabel, si pentru fiecare linie se parcurge lista cu valorile continute pe linie, eliberandu-se succesiv memoria, de la celulele de lista cu informatiile continute de linii si pana la vectorul de linii al tabelului.
+
+
+FUNCTIA MAIN
+
+	In main este implementat "meniul" pentru fiecare comanda introdusa de la tastatura. Comanda este citita cu fgets, iar in functei de cuvantul cheie al comenzii, adica primul cuvant, pe care l-am extras cu strtok se intra pe cazul corespunzator. Se numeroteaza spatiile din comanda intrucat, atat pentru stergerea unui tabel, cat si pentru stergerea liniilor unui tabel care indeplinesc o conditie cuvantul cheie este "DELETE", elementul distinctiv fiind astfel numarul de spatii ale comenzii. 	
+	Pentru fiecare caz, in functie de numarul de parametrii necesari apelarii functiilor, se extrag cu strtok cuvintele din comanda introdusa de la tastatura.
+	Tototdata, pe fiecare caz, in functie de o anumita neconcordanta, se va afisa un mesaj corespunzator, precum: 
+-Tabelul <TABLE> nu se afla in baza de date
+-Tabelul <TABLE> nu contine coloana <COLUMN>
+-Tipul de date <TYPE> este necunoscut
+-Comanda <COMMAND> este necunoscuta
+
+	
+
+
+
+
+
